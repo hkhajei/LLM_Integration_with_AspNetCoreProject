@@ -1,0 +1,183 @@
+﻿@{
+    ViewData["Title"] = "LLM Chat";
+}
+
+<div class="text-center">
+    <h1 class="display-4">Chat with your LLM</h1>
+
+    <div class="chat-container">
+        <div id="chatMessages" class="chat-messages">
+        </div>
+
+        <div class="input-area">
+            <textarea id="userInput" rows="4" placeholder="Type your message here..."></textarea>
+            <button id="sendMessageBtn">Send Message</button>
+            <button id="qaMessageBtn">Ask Q&A</button>
+        </div>
+        <div id="loadingIndicator" style="display: none; color: gray;">Thinking...</div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        $(document).ready(function () {
+            // Function to add a message to the chat display
+            function addMessage(sender, message) {
+                var messageClass = sender === 'User' ? 'user-message' : 'llm-message';
+                $('#chatMessages').append(`<div class="${messageClass}"><strong>${sender}:</strong> ${message}</div>`);
+                // Scroll to the bottom
+                $('#chatMessages').scrollTop($('#chatMessages')[0].scrollHeight);
+            }
+
+            // Function to send a message to the LLM API
+            async function sendMessage(endpoint) {
+                var message = $('#userInput').val();
+                if (message.trim() === '') {
+                    return; // Don't send empty messages
+                }
+
+                addMessage('User', message); // Display user's message
+                $('#userInput').val(''); // Clear input
+
+                $('#sendMessageBtn').prop('disabled', true); // Disable buttons
+                $('#qaMessageBtn').prop('disabled', true);
+                $('#loadingIndicator').show(); // Show loading indicator
+
+                try {
+                    const response = await fetch(endpoint, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({ message: message })
+                    });
+
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+
+                    const data = await response.json();
+                    addMessage('LLM', data.response); // Display LLM's response
+
+                } catch (error) {
+                    console.error('Error:', error);
+                    addMessage('System Error', 'Could not get a response from the LLM. Please check the console for details.');
+                } finally {
+                    $('#sendMessageBtn').prop('disabled', false); // Re-enable buttons
+                    $('#qaMessageBtn').prop('disabled', false);
+                    $('#loadingIndicator').hide(); // Hide loading indicator
+                }
+            }
+
+            // Event listener for the "Send Message" button (general chat)
+            $('#sendMessageBtn').click(function () {
+                sendMessage('/Chat/chat'); // Call the general chat endpoint
+            });
+
+            // Event listener for the "Ask Q&A" button (RAG chat)
+            $('#qaMessageBtn').click(function () {
+                sendMessage('/Chat/qa'); // Call the Q&A endpoint
+            });
+
+            // Optional: Send message on Enter key press
+            $('#userInput').keypress(function (e) {
+                if (e.which == 13 && !e.shiftKey) { // Enter key, but not Shift+Enter
+                    e.preventDefault(); // Prevent new line
+                    $('#sendMessageBtn').click(); // Trigger send message
+                }
+            });
+
+            // For initial testing of QA, add some dummy documents on page load
+            // In a real application, these would be managed in the backend,
+            // e.g., uploaded via an admin interface or loaded from a database.
+            async function initializeDocumentsForQa() {
+                try {
+                    // This is a placeholder. You'd ideally have a dedicated endpoint
+                    // to add documents from an admin panel or load them on startup.
+                    // For demo purposes, we are simulating documents being "known" by the service.
+                    // In your Program.cs, you've already added the dummy documents for singleton DocumentService.
+                    // So, we don't need a frontend call for this.
+                    // Just make sure your Program.cs still has the dummy data loading for DocumentService.
+                } catch (error) {
+                    console.error("Error initializing documents:", error);
+                }
+            }
+
+            // Call to initialize documents when the page loads (optional, for QA demo setup)
+            // initializeDocumentsForQa(); // Commented out as Program.cs handles initial data.
+        });
+    </script>
+
+    <style>
+        .chat-container {
+            max-width: 800px;
+            margin: 20px auto;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            height: 600px; /* Fixed height for chat area */
+        }
+
+        .chat-messages {
+            flex-grow: 1;
+            padding: 15px;
+            overflow-y: auto; /* Enable scrolling for messages */
+            background-color: #f9f9f9;
+            text-align: left;
+        }
+
+        .user-message {
+            background-color: #e6f7ff;
+            padding: 8px 12px;
+            margin-bottom: 8px;
+            border-radius: 5px;
+            align-self: flex-end; /* Align to the right */
+        }
+
+        .llm-message {
+            background-color: #e0ffe0;
+            padding: 8px 12px;
+            margin-bottom: 8px;
+            border-radius: 5px;
+            align-self: flex-start; /* Align to the left */
+        }
+
+        .input-area {
+            display: flex;
+            padding: 15px;
+            border-top: 1px solid #ccc;
+            background-color: #fff;
+        }
+
+            .input-area textarea {
+                flex-grow: 1;
+                margin-right: 10px;
+                padding: 8px;
+                border: 1px solid #ddd;
+                border-radius: 4px;
+                resize: vertical; /* Allow vertical resize */
+                min-height: 40px;
+            }
+
+            .input-area button {
+                padding: 8px 15px;
+                background-color: #007bff;
+                color: white;
+                border: none;
+                border-radius: 4px;
+                cursor: pointer;
+                margin-left: 5px; /* Spacing between buttons */
+            }
+
+                .input-area button:hover {
+                    background-color: #0056b3;
+                }
+
+                .input-area button:disabled {
+                    background-color: #cccccc;
+                    cursor: not-allowed;
+                }
+    </style>
+}

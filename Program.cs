@@ -3,7 +3,7 @@ using Microsoft.SemanticKernel;
 using Microsoft.SemanticKernel.ChatCompletion;
 using Microsoft.SemanticKernel.Embeddings;
 using Microsoft.SemanticKernel.Connectors.Ollama;
-using System; // Make sure System is included for Uri
+using System; 
 
 var builder = WebApplication.CreateBuilder(args);
 
